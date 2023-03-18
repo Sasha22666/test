@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="utf-8" />
+    <title>Напитки_LOCALSTORAGE</title>
+</head>
+
+<body>
+    <script src="https://fe.it-academy.by/JQ/jquery.js"></script>
+    <script>
+
+        "use strict";
+
+
+        //var updatePassword;
+
+        class AJAXStorage {
+
+            constructor(stringName) {
+
+                this.ajaxHandlerScript = "https://fe.it-academy.by/AjaxStringStorage2.php";
+                this.stringName = stringName;
+                // let self = this;
+                this.info = {};
+                this.storage = {};
+                this.updatePassword = Math.random();
+
+
+            }
+
+
+
+            readReady(callresult) {
+                if (callresult.error != undefined)
+                    alert(callresult.error);
+                else {
+                    this.info = JSON.parse(callresult.result);
+                    this.storage = JSON.parse(callresult.result);
+                }
+            };
+
+            errorHandler(jqXHR, statusStr, errorStr) {
+                alert(statusStr + ' ' + errorStr);
+            }
+
+            addValue(key, value) {
+                this.storage[key] = value;
+                this.info = this.storage;
+                this.saveChanges();
+            }
+
+            getValue(key) {
+                if (key in this.storage) {
+                    return this.storage[key];
+                }
+                else
+                    return undefined;
+                $.ajax({
+                    url: this.ajaxHandlerScript,
+                    type: 'POST',
+                    cache: false,
+                    dataType: 'json',
+                    data: { f: 'READ', n: this.stringName },
+                    success: this.readReady,
+                    error: this.errorHandler
+                });
+            }
+
+            deleteValue(key) {
+                if (key in this.storage) {
+                    delete this.storage[key];
+                    this.saveChanges();
+                    return true;
+                }
+                else
+                    return false;
+            }
+            getKeys() {
+                return Object.keys(this.storage);
+            }
+
+            saveChanges() {
+                $.ajax({
+                    url: this.ajaxHandlerScript, 
+                    type: 'POST', 
+                    cache: false, 
+                    dataType: 'json',
+                    data: { f: 'LOCKGET', n: this.stringName, p: this.updatePassword },
+                    success: this.lockGetReady, 
+                    error: this.errorHandler
+                }
+                );
+            }
+
+            lockGetReady(callresult) {
+                if (callresult.error != undefined)
+                    alert(callresult.error);
+                else {
+                    this.info = this.storage;
+
+                }
+                $.ajax({
+                    url: this.ajaxHandlerScript,
+                     type: 'POST', 
+                     cache: false, 
+                     dataType: 'json',
+                    data: { f: 'UPDATE', n: this.stringName, v: JSON.stringify(this.info), p: this.updatePassword },
+                    success: this.updateReady, 
+                    error: this.errorHandler
+                }
+                );
+
+            }
+
+            updateReady(callresult) {
+                if (callresult.error != undefined)
+                    alert(callresult.error);
+            }
+        }
+
+
+        let drinkStorage = new AJAXStorage('MARCHIK_DRINKS_STORAGE');
+        // $.ajax({
+        //         url: "https://fe.it-academy.by/AjaxStringStorage2.php", type: 'POST', cache: false, dataType: 'json',
+        //         data: { f: 'READ', n: stringName },
+        //         success: drinkStorage.readReady, error: drinkStorage.errorHandler
+        //     }
+        //     );
+
+        function getStringValue(message) {
+            let value = prompt(`Введите ${message}:`); //спрашиваем 
+            while (true) //проверка на корректность
+            {
+                let intValue = parseInt(value);
+                if (isNaN(intValue) && value !== null && value.trim()) {
+                    return value;
+                }
+                else {
+                    alert(`Введите, пожалуйста, ${message} корректно!`);
+                    value = prompt(`Введите ${message}:`);
+                }
+            }
+        }
+
+        function infoDrink() {
+            let nameDrink = getStringValue('название напитка');
+
+            let isAlco = confirm('Этот напиток алкогольный?');
+            isAlco = isAlco ? 'да' : 'нет';
+
+            let recept = getStringValue('рецепт');
+
+            drinkStorage.addValue(nameDrink, { a: isAlco, r: recept });
+
+        }
+
+        function getInfoDrink() {
+            let nameDrink = getStringValue('название напитка');
+
+            let info = drinkStorage.getValue(nameDrink);
+
+            if (info) {
+                alert(`напиток:  ${nameDrink} 
+алкогольный: ${info.a}
+рецепт приготовления:
+${info.r};`)
+            }
+            else alert(`Нет информации о напитке ${nameDrink}`);
+        }
+
+        function deleteInfoDrink() {
+            let nameDrink = getStringValue('название напитка');
+
+            let delDrink = drinkStorage.deleteValue(nameDrink);
+
+            if (delDrink) {
+                alert(`Информация о напитке ${nameDrink} удалена`)
+            }
+            else alert(`Нет информации о напитке ${nameDrink}`);
+        }
+
+        function listDrink() {
+
+            alert(drinkStorage.getKeys());
+        }
+
+
+
+    </script>
+
+    <input type="button" value="Ввод информации о напитке" onclick="infoDrink()">
+    <input type="button" value="Получение информации о напитке" onclick="getInfoDrink()">
+    <input type="button" value="Удаление информации о напитке" onclick="deleteInfoDrink()">
+    <input type="button" value="Перечень всех напитков" onclick="listDrink()">
+
+
+</body>
+
+</html>
